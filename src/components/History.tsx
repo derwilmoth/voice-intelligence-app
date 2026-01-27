@@ -1,20 +1,36 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, RefreshCw, X, Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function History() {
   const { history, fetchHistory, clearHistory, deleteHistoryItem } =
     useAppStore();
+  const [showClearDialog, setShowClearDialog] = useState(false);
 
   useEffect(() => {
     fetchHistory();
   }, []);
+
+  const handleClearAll = () => {
+    clearHistory();
+    setShowClearDialog(false);
+  };
 
   return (
     <div className="flex flex-col h-screen">
@@ -27,7 +43,7 @@ export function History() {
           <Button
             variant="destructive"
             size="sm"
-            onClick={() => clearHistory()}
+            onClick={() => setShowClearDialog(true)}
             disabled={history.length === 0}
           >
             <Trash2 className="mr-2 h-4 w-4" /> Clear All
@@ -117,6 +133,24 @@ export function History() {
           </div>
         </ScrollArea>
       </div>
+
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all history records. This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearAll}>
+              Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

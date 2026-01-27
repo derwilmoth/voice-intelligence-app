@@ -16,7 +16,8 @@
         "width": 400,
         "height": 380,
         "resizable": false,
-        "fullscreen": false
+        "fullscreen": false,
+        "maximizable": false
       }
     ],
     "security": {
