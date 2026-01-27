@@ -2,7 +2,7 @@ use crate::audio::{list_input_devices, play_sound};
 use crate::models::{AppStateData, HistoryItem, Settings};
 use crate::ollama::scan_models;
 use crate::store::{load_data, save_data};
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 #[cfg(desktop)]
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
@@ -68,4 +68,24 @@ pub fn clear_history(app: AppHandle) -> Result<(), String> {
     let mut data = load_data(&app)?;
     data.history.clear();
     save_data(&app, &data)
+}
+
+#[tauri::command]
+pub fn get_app_info(app: AppHandle) -> Result<serde_json::Value, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .ok()
+        .and_then(|p| p.to_str().map(String::from));
+    let log_dir = app
+        .path()
+        .app_log_dir()
+        .ok()
+        .and_then(|p| p.to_str().map(String::from));
+
+    Ok(serde_json::json!({
+        "app_data_dir": app_data_dir,
+        "log_dir": log_dir,
+        "build_mode": if cfg!(debug_assertions) { "debug" } else { "release" }
+    }))
 }

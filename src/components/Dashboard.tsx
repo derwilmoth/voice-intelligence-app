@@ -10,23 +10,49 @@ import { Activity, Mic, Brain, CheckCircle2 } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 
 export function Dashboard() {
-  const { status, history, fetchHistory, setStatus, triggerAction } =
-    useAppStore();
+  const {
+    status,
+    history,
+    error,
+    fetchHistory,
+    setStatus,
+    setError,
+    triggerAction,
+  } = useAppStore();
+  const [statusMessage, setStatusMessage] = React.useState<string>("");
 
   useEffect(() => {
     fetchHistory();
 
-    let unlisten: () => void;
+    let unlistenStatus: () => void;
+    let unlistenError: () => void;
+    let unlistenPipelineStatus: () => void;
 
-    async function setupListener() {
-      unlisten = await listen("status-changed", (event) => {
+    async function setupListeners() {
+      unlistenStatus = await listen("status-changed", (event) => {
         setStatus(event.payload as any);
+        // Clear error when status changes
+        setError(null);
+        setStatusMessage("");
+      });
+
+      unlistenError = await listen("pipeline-error", (event) => {
+        console.error("Pipeline error:", event.payload);
+        setError(event.payload as string);
+        setStatusMessage("");
+      });
+
+      unlistenPipelineStatus = await listen("pipeline-status", (event) => {
+        console.log("Pipeline status:", event.payload);
+        setStatusMessage(event.payload as string);
       });
     }
-    setupListener();
+    setupListeners();
 
     return () => {
-      if (unlisten) unlisten();
+      if (unlistenStatus) unlistenStatus();
+      if (unlistenError) unlistenError();
+      if (unlistenPipelineStatus) unlistenPipelineStatus();
     };
   }, []);
 
@@ -83,6 +109,22 @@ export function Dashboard() {
 
   return (
     <div className="space-y-4 p-4">
+      {/* Error Display */}
+      {error && (
+        <Card className="border-red-500 bg-red-50 dark:bg-red-950">
+          <CardContent className="py-4">
+            <div className="flex items-start space-x-2">
+              <div className="text-red-600 dark:text-red-400 font-semibold">
+                Error:
+              </div>
+              <div className="text-red-700 dark:text-red-300 text-sm flex-1">
+                {error}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Status Indicator */}
       <Card className="border-none shadow-md bg-secondary/20">
         <CardContent className="flex flex-col items-center justify-center py-6 space-y-3">
@@ -94,6 +136,11 @@ export function Dashboard() {
           <h2 className="text-xl font-semibold tracking-tight">
             {getStatusText(status)}
           </h2>
+          {statusMessage && (
+            <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
+              {statusMessage}
+            </p>
+          )}
           <p className="text-sm text-muted-foreground text-center mb-2">
             {status === "idle"
               ? "Press global hotkey or click below to start"

@@ -17,26 +17,43 @@ const MODEL_FILENAME: &str = "ggml-large-v3-turbo-q8_0.bin";
 
 pub fn run_pipeline(app: AppHandle) {
     std::thread::spawn(move || {
-        let _ = internal_run_pipeline(&app);
-        // Regardless of success/fail, we go back to idle eventually
+        match internal_run_pipeline(&app) {
+            Ok(_) => {
+                log::info!("Pipeline completed successfully");
+            }
+            Err(e) => {
+                log::error!("Pipeline failed: {}", e);
+                // Emit error event to frontend
+                app.emit("pipeline-error", e.clone()).unwrap_or_default();
+                play_sound("Click"); // Error sound
+            }
+        }
+        // Go back to idle after completion or error
         set_status(&app, AppStatus::Idle);
     });
 }
 
 fn internal_run_pipeline(app: &AppHandle) -> Result<(), String> {
+    log::info!("Starting pipeline...");
+
     // 1. Get Paths and Ensure Model
     let instruction_path = app.path().app_data_dir().unwrap().join("instruction.wav");
     let content_path = app.path().app_data_dir().unwrap().join("content.wav");
     let model_path = app.path().app_data_dir().unwrap().join(MODEL_FILENAME);
 
-    ensure_whisper_model(&model_path)?;
+    log::info!("Checking for Whisper model...");
+    ensure_whisper_model(app, &model_path)?;
 
     // 2. Load Settings & Model
+    log::info!("Loading settings...");
     let data = load_data(app)?;
     let model = data.settings.model.clone();
 
     // Load Whisper Context (can take some time, maybe cache this in state later if slow)
     // For now simple load on demand
+    log::info!("Loading Whisper model into memory...");
+    app.emit("pipeline-status", "Loading AI model...")
+        .unwrap_or_default();
     let ctx = WhisperContext::new_with_params(
         &model_path.to_string_lossy(),
         WhisperContextParameters::default(),
@@ -83,33 +100,56 @@ fn internal_run_pipeline(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn ensure_whisper_model(path: &PathBuf) -> Result<(), String> {
+fn ensure_whisper_model(app: &AppHandle, path: &PathBuf) -> Result<(), String> {
     if path.exists() {
+        log::info!("Whisper model found at {:?}", path);
         return Ok(());
     }
 
-    log::info!("Downloading Whisper model to {:?}", path);
+    log::info!("Whisper model not found. Downloading to {:?}", path);
+    log::info!("This may take several minutes (model is ~1.5GB)...");
+
+    // Emit status to UI
+    app.emit(
+        "pipeline-status",
+        "Downloading AI model (this may take several minutes)...",
+    )
+    .unwrap_or_default();
+
     // Create dir if needed
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        std::fs::create_dir_all(parent).map_err(|e| {
+            format!(
+                "Failed to create model directory: {}. Please check write permissions.",
+                e
+            )
+        })?;
     }
 
     let mut response = Client::new()
         .get(MODEL_URL)
+        .timeout(std::time::Duration::from_secs(600)) // 10 minute timeout for large file
         .send()
-        .map_err(|e| format!("Failed to download model: {}", e))?;
+        .map_err(|e| format!("Failed to download Whisper model. Please check your internet connection. Error: {}", e))?;
 
     if !response.status().is_success() {
         return Err(format!(
-            "Failed to download model, status: {}",
+            "Failed to download Whisper model. Server returned status: {}. Please try again later.",
             response.status()
         ));
     }
 
-    let mut file = File::create(path).map_err(|e| e.to_string())?;
-    response.copy_to(&mut file).map_err(|e| e.to_string())?;
+    let mut file = File::create(path).map_err(|e| {
+        format!(
+            "Failed to create model file. Please check write permissions. Error: {}",
+            e
+        )
+    })?;
 
-    log::info!("Model download complete.");
+    response.copy_to(&mut file)
+        .map_err(|e| format!("Failed to save model file. Please ensure you have enough disk space (~1.5GB). Error: {}", e))?;
+
+    log::info!("Whisper model download complete!");
     Ok(())
 }
 
@@ -163,24 +203,36 @@ fn transcribe_local(ctx: &WhisperContext, path: &PathBuf) -> Result<String, Stri
         mono_samples = resample_linear(&mono_samples, spec.sample_rate, 16000);
     }
 
+    log::info!("Creating Whisper inference state...");
     // Create state
     let mut state = ctx
         .create_state()
         .map_err(|e| format!("Failed to create Whisper state: {}", e))?;
 
+    log::info!("Configuring Whisper parameters...");
     // Set params
     let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+
+    // Use 4 threads for better performance
     params.set_n_threads(4);
+
+    // Use "auto" for automatic language detection
     params.set_language(Some("auto"));
     params.set_print_special(false);
     params.set_print_progress(false);
     params.set_print_realtime(false);
     params.set_print_timestamps(false);
 
+    log::info!(
+        "Running Whisper inference with auto language detection on {} samples...",
+        mono_samples.len()
+    );
     // Run
     state
         .full(params, &mono_samples[..])
         .map_err(|e| format!("failed to run model: {}", e))?;
+
+    log::info!("Whisper inference complete, extracting text...");
 
     // Collect text
     let num_segments = state.full_n_segments();
@@ -206,6 +258,7 @@ fn enrich(instruction: &str, content: &str, model: &str) -> Result<String, Strin
     let client = Client::new();
     let res = client
         .post(OLLAMA_API_URL)
+        .timeout(std::time::Duration::from_secs(120)) // 2 minute timeout
         .json(&json!({
             "model": model,
             "stream": false,
@@ -217,17 +270,24 @@ fn enrich(instruction: &str, content: &str, model: &str) -> Result<String, Strin
             ]
         }))
         .send()
-        .map_err(|e| format!("Ollama enrichment failed: {}", e))?;
+        .map_err(|e| {
+            format!(
+                "Failed to connect to Ollama at {}. Please ensure Ollama is running. Error: {}",
+                OLLAMA_API_URL, e
+            )
+        })?;
 
     if !res.status().is_success() {
-        return Err(format!("Ollama error: {}", res.status()));
+        return Err(format!("Ollama error (status {}). Model '{}' may not be installed. Please run 'ollama pull {}' in your terminal.", res.status(), model, model));
     }
 
-    let body: Value = res.json().map_err(|e| e.to_string())?;
+    let body: Value = res
+        .json()
+        .map_err(|e| format!("Failed to parse Ollama response: {}", e))?;
 
     let result = body["message"]["content"]
         .as_str()
-        .ok_or("Invalid response format from Ollama")?
+        .ok_or("Invalid response format from Ollama. Please check Ollama version and model compatibility.")?
         .trim()
         .to_string();
 
@@ -235,23 +295,48 @@ fn enrich(instruction: &str, content: &str, model: &str) -> Result<String, Strin
 }
 
 fn resample_linear(input: &[f32], input_rate: u32, target_rate: u32) -> Vec<f32> {
-    let ratio = input_rate as f32 / target_rate as f32;
-    // Calculate new length
-    let new_len = (input.len() as f32 / ratio).ceil() as usize;
+    // Handle edge cases
+    if input.is_empty() {
+        log::warn!("Resampling empty input");
+        return Vec::new();
+    }
+
+    if input_rate == target_rate {
+        log::info!("No resampling needed (same rate)");
+        return input.to_vec();
+    }
+
+    let ratio = input_rate as f64 / target_rate as f64;
+    let new_len = (input.len() as f64 / ratio).ceil() as usize;
+
+    log::info!(
+        "Resampling {} samples -> {} samples (ratio: {:.2})",
+        input.len(),
+        new_len,
+        ratio
+    );
+
     let mut output = Vec::with_capacity(new_len);
+    let input_len = input.len();
+    let input_len_minus_1 = input_len.saturating_sub(1);
 
     for i in 0..new_len {
-        let input_idx = i as f32 * ratio;
+        let input_idx = i as f64 * ratio;
         let idx0 = input_idx.floor() as usize;
-        let idx1 = (idx0 + 1).min(input.len() - 1);
-        let t = input_idx - input_idx.floor();
+
+        // Bounds check
+        if idx0 >= input_len {
+            break;
+        }
+
+        let idx1 = (idx0 + 1).min(input_len_minus_1);
+        let t = (input_idx - input_idx.floor()) as f32;
 
         // Linear interpolation
-        // Safety check for empty input
-        if idx0 < input.len() {
-            let val = input[idx0] * (1.0 - t) + input[idx1] * t;
-            output.push(val);
-        }
+        let val = input[idx0] * (1.0 - t) + input[idx1] * t;
+        output.push(val);
     }
+
+    log::info!("Resampling complete: generated {} samples", output.len());
     output
 }

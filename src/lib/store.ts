@@ -21,6 +21,7 @@ interface AppState {
     models: string[];
     microphones: string[];
     status: 'idle' | 'instruction' | 'content' | 'processing' | 'success';
+    error: string | null;
     
     // Actions
     fetchSettings: () => Promise<void>;
@@ -30,6 +31,7 @@ interface AppState {
     fetchModels: () => Promise<void>;
     fetchMicrophones: () => Promise<void>;
     setStatus: (status: AppState['status']) => void;
+    setError: (error: string | null) => void;
     triggerAction: () => Promise<void>;
 }
 
@@ -43,6 +45,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     models: [],
     microphones: [],
     status: 'idle',
+    error: null,
 
     fetchSettings: async () => {
         try {
@@ -99,6 +102,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
 
     setStatus: (status) => set({ status }),
+
+    setError: (error) => set({ error }),
 
     triggerAction: async () => {
         try {

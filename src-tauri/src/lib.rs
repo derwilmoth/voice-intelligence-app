@@ -35,16 +35,39 @@ pub fn run() {
             commands::get_history,
             commands::add_history_item,
             commands::clear_history,
+            commands::get_app_info,
             manual_trigger
         ])
         .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
+            // Enable logging in both debug and release builds
+            // In release, logs go to a file in the app data directory
+            let log_plugin = if cfg!(debug_assertions) {
+                tauri_plugin_log::Builder::default()
+                    .level(log::LevelFilter::Info)
+                    .build()
+            } else {
+                // Release mode: write logs to file
+                tauri_plugin_log::Builder::default()
+                    .level(log::LevelFilter::Info)
+                    .target(tauri_plugin_log::Target::new(
+                        tauri_plugin_log::TargetKind::LogDir {
+                            file_name: Some("app.log".to_string()),
+                        },
+                    ))
+                    .build()
+            };
+            app.handle().plugin(log_plugin)?;
+
+            log::info!("=== Application Starting ===");
+            log::info!("App data dir: {:?}", app.path().app_data_dir());
+            log::info!(
+                "Build mode: {}",
+                if cfg!(debug_assertions) {
+                    "DEBUG"
+                } else {
+                    "RELEASE"
+                }
+            );
 
             #[cfg(desktop)]
             {
