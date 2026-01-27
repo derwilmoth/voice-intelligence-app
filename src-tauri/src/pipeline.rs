@@ -125,6 +125,12 @@ fn transcribe_local(ctx: &WhisperContext, path: &PathBuf) -> Result<String, Stri
 
     let mut reader = hound::WavReader::open(path).map_err(|e| e.to_string())?;
     let spec = reader.spec();
+    log::info!(
+        "Audio file spec: {} channels, {} Hz, {:?} format",
+        spec.channels,
+        spec.sample_rate,
+        spec.sample_format
+    );
 
     // Convert samples to f32
     let samples: Vec<f32> = match spec.sample_format {
@@ -136,14 +142,26 @@ fn transcribe_local(ctx: &WhisperContext, path: &PathBuf) -> Result<String, Stri
     };
 
     // If stereo (channels=2), filter to mono (take every 2nd sample or average)
-    let mono_samples: Vec<f32> = if spec.channels == 2 {
+    let mut mono_samples: Vec<f32> = if spec.channels == 2 {
         samples
             .chunks(2)
             .map(|chunk| (chunk[0] + chunk[1]) / 2.0)
             .collect()
-    } else {
+    } else if spec.channels == 1 {
         samples
+    } else {
+        // Fallback for > 2 channels: just take first channel
+        samples
+            .chunks(spec.channels as usize)
+            .map(|chunk| chunk[0])
+            .collect()
     };
+
+    // Resample if needed
+    if spec.sample_rate != 16000 {
+        log::info!("Resampling from {} Hz to 16000 Hz", spec.sample_rate);
+        mono_samples = resample_linear(&mono_samples, spec.sample_rate, 16000);
+    }
 
     // Create state
     let mut state = ctx
@@ -214,4 +232,26 @@ fn enrich(instruction: &str, content: &str, model: &str) -> Result<String, Strin
         .to_string();
 
     Ok(result)
+}
+
+fn resample_linear(input: &[f32], input_rate: u32, target_rate: u32) -> Vec<f32> {
+    let ratio = input_rate as f32 / target_rate as f32;
+    // Calculate new length
+    let new_len = (input.len() as f32 / ratio).ceil() as usize;
+    let mut output = Vec::with_capacity(new_len);
+
+    for i in 0..new_len {
+        let input_idx = i as f32 * ratio;
+        let idx0 = input_idx.floor() as usize;
+        let idx1 = (idx0 + 1).min(input.len() - 1);
+        let t = input_idx - input_idx.floor();
+
+        // Linear interpolation
+        // Safety check for empty input
+        if idx0 < input.len() {
+            let val = input[idx0] * (1.0 - t) + input[idx1] * t;
+            output.push(val);
+        }
+    }
+    output
 }
