@@ -5,7 +5,7 @@ use crate::store::{load_data, save_data};
 use reqwest::blocking::Client;
 use serde_json::{json, Value};
 use std::fs::File;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};

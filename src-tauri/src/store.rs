@@ -1,4 +1,4 @@
-use crate::models::{AppStateData, HistoryItem, Settings};
+use crate::models::AppStateData;
 use std::fs;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager, Runtime}; // Assuming models.rs is visible

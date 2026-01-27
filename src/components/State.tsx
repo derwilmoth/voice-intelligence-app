@@ -6,10 +6,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Activity, Mic, Brain, CheckCircle2, Loader2 } from "lucide-react";
+import {
+  Activity,
+  Mic,
+  Brain,
+  CheckCircle2,
+  Loader2,
+  AudioLines,
+} from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 
-export function Dashboard() {
+export function State() {
   const {
     status,
     history,
@@ -62,32 +69,32 @@ export function Dashboard() {
   const getStatusColor = (s: string) => {
     switch (s) {
       case "idle":
-        return "bg-primary";
+        return "bg-secondary";
       case "instruction":
-        return "bg-primary animate-pulse";
+        return "bg-secondary animate-pulse";
       case "content":
-        return "bg-primary animate-pulse";
+        return "bg-secondary animate-pulse";
       case "processing":
-        return "bg-primary animate-pulse";
+        return "bg-secondary animate-pulse";
       case "success":
-        return "bg-primary";
+        return "bg-secondary";
       default:
-        return "bg-primary";
+        return "bg-secondary";
     }
   };
 
   const getStatusIcon = (s: string) => {
     switch (s) {
       case "instruction":
-        return <Mic className="w-8 h-8 text-primary-foreground" />;
+        return <Mic className="w-8 h-8 text-secondary-foreground" />;
       case "content":
-        return <Mic className="w-8 h-8 text-primary-foreground" />;
+        return <Mic className="w-8 h-8 text-secondary-foreground" />;
       case "processing":
-        return <Brain className="w-8 h-8 text-primary-foreground" />;
+        return <Brain className="w-8 h-8 text-secondary-foreground" />;
       case "success":
-        return <CheckCircle2 className="w-8 h-8 text-primary-foreground" />;
+        return <CheckCircle2 className="w-8 h-8 text-secondary-foreground" />;
       default:
-        return <Mic className="w-8 h-8 text-primary-foreground" />;
+        return <Mic className="w-8 h-8 text-secondary-foreground" />;
     }
   };
 
@@ -96,11 +103,11 @@ export function Dashboard() {
       case "idle":
         return "Ready";
       case "instruction":
-        return "Listening for Instruction...";
+        return "Listening for Instruction";
       case "content":
-        return "Listening for Content...";
+        return "Listening for Content";
       case "processing":
-        return "Processing...";
+        return "Processing";
       case "success":
         return "Done!";
       default:
@@ -141,16 +148,20 @@ export function Dashboard() {
             </p>
           )}
           <p className="text-sm text-muted-foreground text-center mb-2">
-            {status === "idle" && "Press global hotkey or click below to start"}
+            {status === "idle"
+              ? "Press global hotkey or click below to start"
+              : status === "instruction"
+                ? "Talk about what I’m supposed to contribute"
+                : status === "content"
+                  ? "Tell me about what I’m supposed to enrich"
+                  : status === "processing" &&
+                    "This may take a few minutes... After completion, the result will be copied to your clipboard"}
           </p>
-          {status === "idle" && (
-            <Button
-              onClick={triggerAction}
-              size="lg"
-              variant="default"
-              className="w-full max-w-xs"
-            >
-              Start Recording
+          {(status === "idle" ||
+            status == "instruction" ||
+            status == "content") && (
+            <Button onClick={triggerAction} size="lg" variant="default">
+              {status === "idle" ? "Start Recording" : "Continue"}
             </Button>
           )}
         </CardContent>

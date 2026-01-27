@@ -1,5 +1,5 @@
 use crate::audio::{list_input_devices, play_sound};
-use crate::models::{AppStateData, HistoryItem, Settings};
+use crate::models::{HistoryItem, Settings};
 use crate::ollama::scan_models;
 use crate::store::{load_data, save_data};
 use tauri::{AppHandle, Manager};

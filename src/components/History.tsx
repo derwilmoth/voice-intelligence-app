@@ -5,7 +5,7 @@ import { useAppStore } from "@/lib/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, RefreshCw, X } from "lucide-react";
+import { Trash2, RefreshCw, X, Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export function History() {
@@ -17,15 +17,15 @@ export function History() {
   }, []);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] p-4 space-y-4">
-      <div className="flex justify-between items-center">
+    <div className="flex flex-col h-screen">
+      <div className="flex justify-between items-center px-4 pt-4 pb-3 shrink-0">
         <h2 className="text-xl font-bold">History</h2>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => fetchHistory()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button
-            variant="destructive"
+            variant="default"
             size="sm"
             onClick={() => clearHistory()}
             disabled={history.length === 0}
@@ -35,60 +35,88 @@ export function History() {
         </div>
       </div>
 
-      <ScrollArea className="flex-1 rounded-md border p-4 bg-background/50">
-        {history.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-            <p>No history records found.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {history
-              .slice()
-              .reverse()
-              .map((item) => (
-                <Card key={item.id} className="overflow-hidden">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="space-y-1 flex-1">
-                        <Badge variant="secondary" className="font-mono">
-                          {item.instruction}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          {new Date(item.timestamp).toLocaleString()}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={() => deleteHistoryItem(item.id)}
-                          className="shrink-0"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-[90%]">
+          <div className="px-4 pb-12">
+            {history.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+                <p>No history records found.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {history
+                  .slice()
+                  .reverse()
+                  .map((item) => (
+                    <Card key={item.id} className="overflow-hidden">
+                      <CardContent className="p-4 space-y-2.5">
+                        <div className="flex flex-col gap-2">
+                          <div className="flex justify-between items-start gap-2">
+                            <span className="text-xs text-muted-foreground break-words">
+                              {new Date(item.timestamp).toLocaleString()}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              onClick={() => deleteHistoryItem(item.id)}
+                              className="shrink-0"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                          <Badge
+                            variant="secondary"
+                            className="font-mono text-sm break-words  rounded-md whitespace-normal max-w-full w-fit"
+                          >
+                            {item.instruction}
+                          </Badge>
+                        </div>
 
-                    <div className="grid gap-2 text-sm">
-                      <div className="bg-muted p-2 rounded-md">
-                        <p className="text-xs font-semibold mb-1 text-muted-foreground">
-                          Original:
-                        </p>
-                        <p>{item.original_content}</p>
-                      </div>
-                      <div className="bg-primary/5 p-2 rounded-md border border-primary/20">
-                        <p className="text-xs font-semibold mb-1 text-primary">
-                          Enriched:
-                        </p>
-                        <p>{item.enriched_content}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                        <div className="grid gap-2.5 text-sm">
+                          <ScrollArea className="max-h-20 w-full">
+                            <div className="bg-muted p-2.5 rounded-md pr-3">
+                              <p className="text-xs font-semibold mb-1.5 text-muted-foreground">
+                                Original:
+                              </p>
+                              <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                                {item.original_content}
+                              </p>
+                            </div>
+                          </ScrollArea>
+                          <ScrollArea className="max-h-28 w-full">
+                            <div className="bg-primary/5 p-2.5 rounded-md border border-primary/20 pr-3">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <p className="text-xs font-semibold text-primary">
+                                  Enriched:
+                                </p>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  onClick={() =>
+                                    navigator.clipboard.writeText(
+                                      item.enriched_content,
+                                    )
+                                  }
+                                  className="shrink-0"
+                                  title="Copy to clipboard"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                              <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                                {item.enriched_content}
+                              </p>
+                            </div>
+                          </ScrollArea>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            )}
           </div>
-        )}
-      </ScrollArea>
+        </ScrollArea>
+      </div>
     </div>
   );
 }

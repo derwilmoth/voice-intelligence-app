@@ -50,115 +50,126 @@ export function Settings() {
     await saveSettings(localSettings);
   };
 
+  const hasChanges =
+    localSettings.model !== settings.model ||
+    localSettings.microphone !== settings.microphone ||
+    localSettings.hotkey !== settings.hotkey;
+
   return (
-    <ScrollArea className="h-[calc(100vh-80px)]">
-      <div className="p-4 space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">AI Configuration</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="model">Ollama Model</Label>
-              <div className="flex gap-2">
-                <Select
-                  value={localSettings.model}
-                  onValueChange={(val) =>
-                    setLocalSettings({ ...localSettings, model: val })
-                  }
-                >
-                  <SelectTrigger id="model">
-                    <SelectValue placeholder="Select model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {models.length === 0 ? (
-                      <SelectItem value="none" disabled>
-                        No models found
-                      </SelectItem>
-                    ) : (
-                      models.map((m) => (
-                        <SelectItem key={m} value={m}>
-                          {m}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => fetchModels()}
-                  title="Refresh Models"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Models detected in your .ollama directory.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Input & Control</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="mic">Microphone</Label>
-              <div className="flex gap-2">
-                <Select
-                  value={localSettings.microphone}
-                  onValueChange={(val) =>
-                    setLocalSettings({ ...localSettings, microphone: val })
-                  }
-                >
-                  <SelectTrigger id="mic">
-                    <SelectValue placeholder="Select microphone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">
-                      Default System Device
-                    </SelectItem>
-                    {microphones.map((mic) => (
-                      <SelectItem key={mic} value={mic}>
-                        {mic}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => fetchMicrophones()}
-                  title="Refresh Mics"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="hotkey">Global Hotkey</Label>
-              <Input
-                id="hotkey"
-                value={localSettings.hotkey}
-                onChange={(e) =>
-                  setLocalSettings({ ...localSettings, hotkey: e.target.value })
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                Format: Modifiers+Key (e.g., Ctrl+I, Alt+Space)
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Button className="w-full" onClick={handleSave}>
-          <Save className="mr-2 h-4 w-4" /> Save Settings
-        </Button>
+    <div className="flex flex-col h-full">
+      <div className="flex justify-between items-center px-4 pt-4 pb-3 shrink-0">
+        <h2 className="text-xl font-bold h-8">Settings</h2>
+        {hasChanges && (
+          <Button size="sm" onClick={handleSave}>
+            <Save className="mr-2 h-3 w-3" /> Save
+          </Button>
+        )}
       </div>
-    </ScrollArea>
+
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="px-4 pb-4 space-y-4">
+            <Card>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="model">Ollama Enrichment Model</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={localSettings.model}
+                      onValueChange={(val) =>
+                        setLocalSettings({ ...localSettings, model: val })
+                      }
+                    >
+                      <SelectTrigger id="model">
+                        <SelectValue placeholder="Select model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {models.length === 0 ? (
+                          <SelectItem value="none" disabled>
+                            No models found
+                          </SelectItem>
+                        ) : (
+                          models.map((m) => (
+                            <SelectItem key={m} value={m}>
+                              {m}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => fetchModels()}
+                      title="Refresh Models"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Models detected in your .ollama directory.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="mic">Microphone</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={localSettings.microphone}
+                      onValueChange={(val) =>
+                        setLocalSettings({ ...localSettings, microphone: val })
+                      }
+                    >
+                      <SelectTrigger id="mic">
+                        <SelectValue placeholder="Select microphone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">
+                          Default System Device
+                        </SelectItem>
+                        {microphones.map((mic) => (
+                          <SelectItem key={mic} value={mic}>
+                            {mic}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => fetchMicrophones()}
+                      title="Refresh Mics"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="hotkey">Global Hotkey</Label>
+                  <Input
+                    id="hotkey"
+                    value={localSettings.hotkey}
+                    onChange={(e) =>
+                      setLocalSettings({
+                        ...localSettings,
+                        hotkey: e.target.value,
+                      })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Format: Modifiers+Key (e.g., Ctrl+I, Alt+Space)
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
   );
 }
