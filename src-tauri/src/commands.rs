@@ -1,6 +1,12 @@
 use crate::models::{AppStateData, HistoryItem, Settings};
+use crate::ollama::scan_models;
 use crate::store::{load_data, save_data};
 use tauri::AppHandle;
+
+#[tauri::command]
+pub fn get_models() -> Vec<String> {
+    scan_models()
+}
 
 #[tauri::command]
 pub fn get_settings(app: AppHandle) -> Result<Settings, String> {

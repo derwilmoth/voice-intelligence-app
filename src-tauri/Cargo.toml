@@ -25,3 +25,5 @@ tauri = { version = "2.9.5", features = [] }
 tauri-plugin-log = "2"
 chrono = { version = "0.4.43", features = ["serde"] }
 uuid = { version = "1.20.0", features = ["v4", "serde"] }
+walkdir = "2.5.0"
+dirs = "6.0.0"

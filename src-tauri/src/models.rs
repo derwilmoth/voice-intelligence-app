@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Settings {
     pub model: String,
-    pub microphone: String, // Device name or ID
+    pub microphone: String,
     pub hotkey: String,
 }
 
