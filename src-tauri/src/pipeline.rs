@@ -12,8 +12,8 @@ use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextPar
 
 const OLLAMA_API_URL: &str = "http://localhost:11434/api/chat";
 const MODEL_URL: &str =
-    "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin";
-const MODEL_FILENAME: &str = "ggml-large-v3.bin";
+    "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q8_0.bin";
+const MODEL_FILENAME: &str = "ggml-large-v3-turbo-q8_0.bin";
 
 pub fn run_pipeline(app: AppHandle) {
     std::thread::spawn(move || {
