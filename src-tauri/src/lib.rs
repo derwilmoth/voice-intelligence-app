@@ -37,6 +37,7 @@ pub fn run() {
             commands::clear_history,
             commands::delete_history_item,
             commands::get_app_info,
+            commands::stop_pipeline,
             manual_trigger
         ])
         .setup(|app| {

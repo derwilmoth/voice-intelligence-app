@@ -96,3 +96,12 @@ pub fn get_app_info(app: AppHandle) -> Result<serde_json::Value, String> {
         "build_mode": if cfg!(debug_assertions) { "debug" } else { "release" }
     }))
 }
+
+#[tauri::command]
+pub fn stop_pipeline(app: AppHandle) -> Result<(), String> {
+    use crate::logic::{set_status, AppStatus};
+    log::info!("Stop pipeline requested");
+    crate::pipeline::cancel_pipeline();
+    set_status(&app, AppStatus::Idle);
+    Ok(())
+}

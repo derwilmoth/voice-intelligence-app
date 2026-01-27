@@ -34,6 +34,7 @@ interface AppState {
     setStatus: (status: AppState['status']) => void;
     setError: (error: string | null) => void;
     triggerAction: () => Promise<void>;
+    stopPipeline: () => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -121,6 +122,14 @@ export const useAppStore = create<AppState>((set, get) => ({
             await invoke('manual_trigger');
         } catch (error) {
             console.error('Failed to trigger action:', error);
+        }
+    },
+
+    stopPipeline: async () => {
+        try {
+            await invoke('stop_pipeline');
+        } catch (error) {
+            console.error('Failed to stop pipeline:', error);
         }
     },
 }));

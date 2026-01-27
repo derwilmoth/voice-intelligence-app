@@ -25,7 +25,7 @@ export function History() {
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button
-            variant="default"
+            variant="destructive"
             size="sm"
             onClick={() => clearHistory()}
             disabled={history.length === 0}
@@ -39,7 +39,7 @@ export function History() {
         <ScrollArea className="h-[90%]">
           <div className="px-4 pb-12">
             {history.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+              <div className="flex flex-col items-center text-sm justify-center h-40 text-muted-foreground">
                 <p>No history records found.</p>
               </div>
             ) : (

@@ -107,6 +107,7 @@ dependencies = [
  "dirs",
  "hound",
  "log",
+ "once_cell",
  "reqwest 0.13.1",
  "rodio",
  "serde",

@@ -25,6 +25,7 @@ export function State() {
     setStatus,
     setError,
     triggerAction,
+    stopPipeline,
   } = useAppStore();
   const [statusMessage, setStatusMessage] = React.useState<string>("");
 
@@ -155,13 +156,18 @@ export function State() {
                 : status === "content"
                   ? "Tell me about what I’m supposed to enrich"
                   : status === "processing" &&
-                    "This may take a few minutes... After completion, the result will be copied to your clipboard"}
+                    "The result will be copied to your clipboard"}
           </p>
           {(status === "idle" ||
             status == "instruction" ||
             status == "content") && (
             <Button onClick={triggerAction} size="lg" variant="default">
               {status === "idle" ? "Start Recording" : "Continue"}
+            </Button>
+          )}
+          {status === "processing" && (
+            <Button onClick={stopPipeline} size="lg" variant="destructive">
+              Stop Processing
             </Button>
           )}
         </CardContent>

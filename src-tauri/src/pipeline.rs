@@ -6,9 +6,19 @@ use reqwest::blocking::Client;
 use serde_json::{json, Value};
 use std::fs::File;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
+
+use once_cell::sync::Lazy;
+
+static CANCEL_FLAG: Lazy<Arc<AtomicBool>> = Lazy::new(|| Arc::new(AtomicBool::new(false)));
+
+pub fn cancel_pipeline() {
+    CANCEL_FLAG.store(true, Ordering::Relaxed);
+}
 
 const OLLAMA_API_URL: &str = "http://localhost:11434/api/chat";
 const MODEL_URL: &str =
@@ -16,6 +26,9 @@ const MODEL_URL: &str =
 const MODEL_FILENAME: &str = "ggml-large-v3-turbo-q8_0.bin";
 
 pub fn run_pipeline(app: AppHandle) {
+    // Reset cancel flag
+    CANCEL_FLAG.store(false, Ordering::Relaxed);
+
     std::thread::spawn(move || {
         match internal_run_pipeline(&app) {
             Ok(_) => {
@@ -60,15 +73,30 @@ fn internal_run_pipeline(app: &AppHandle) -> Result<(), String> {
     )
     .map_err(|e| format!("Failed to load Whisper model: {}", e))?;
 
+    // Check if cancelled
+    if CANCEL_FLAG.load(Ordering::Relaxed) {
+        return Err("Pipeline cancelled by user".to_string());
+    }
+
     // 3. Transcribe Instruction
     log::info!("Transcribing instruction...");
     let instruction_text = transcribe_local(&ctx, &instruction_path)?;
     log::info!("Instruction: {}", instruction_text);
 
+    // Check if cancelled
+    if CANCEL_FLAG.load(Ordering::Relaxed) {
+        return Err("Pipeline cancelled by user".to_string());
+    }
+
     // 4. Transcribe Content
     log::info!("Transcribing content...");
     let content_text = transcribe_local(&ctx, &content_path)?;
     log::info!("Content: {}", content_text);
+
+    // Check if cancelled
+    if CANCEL_FLAG.load(Ordering::Relaxed) {
+        return Err("Pipeline cancelled by user".to_string());
+    }
 
     // 5. Enrich
     log::info!("Enriching with model: {}", model);
