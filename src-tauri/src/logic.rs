@@ -75,20 +75,9 @@ pub fn handle_trigger(app: &AppHandle) {
             // Stop Recording 2
             stop_recording(&audio_state);
 
-            // Trigger processing in background (Task for Step 7)
-            // For now just simulate processing transition
-            // We will spawn a thread or just leave it here?
-            // If we stay in Processing, the UI shows processing.
-            // We need to kick off the AI pipeline here.
-
-            // Let's spawn a dummy task to simulate completion for now
-            let app_clone = app.clone();
-            std::thread::spawn(move || {
-                std::thread::sleep(std::time::Duration::from_secs(2));
-                // Finish processing
-                play_sound("Success");
-                set_status(&app_clone, AppStatus::Idle);
-            });
+            // Trigger processing in background
+            use crate::pipeline::run_pipeline;
+            run_pipeline(app.clone());
 
             AppStatus::Processing
         }
@@ -103,7 +92,7 @@ pub fn handle_trigger(app: &AppHandle) {
     let _ = app.emit("status-changed", new_status.as_str());
 }
 
-fn set_status(app: &AppHandle, new_status: AppStatus) {
+pub fn set_status(app: &AppHandle, new_status: AppStatus) {
     let logic_state = app.state::<LogicState>();
     let mut status = logic_state.status.lock().unwrap();
     *status = new_status;
