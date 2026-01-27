@@ -12,8 +12,8 @@ use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextPar
 
 const OLLAMA_API_URL: &str = "http://localhost:11434/api/chat";
 const MODEL_URL: &str =
-    "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin";
-const MODEL_FILENAME: &str = "ggml-base.en.bin";
+    "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin";
+const MODEL_FILENAME: &str = "ggml-large-v3.bin";
 
 pub fn run_pipeline(app: AppHandle) {
     std::thread::spawn(move || {
@@ -171,7 +171,7 @@ fn transcribe_local(ctx: &WhisperContext, path: &PathBuf) -> Result<String, Stri
     // Set params
     let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
     params.set_n_threads(4);
-    params.set_language(Some("en"));
+    params.set_language(Some("auto"));
     params.set_print_special(false);
     params.set_print_progress(false);
     params.set_print_realtime(false);
