@@ -1,3 +1,4 @@
+use crate::audio::{list_input_devices, play_sound};
 use crate::models::{AppStateData, HistoryItem, Settings};
 use crate::ollama::scan_models;
 use crate::store::{load_data, save_data};
@@ -6,6 +7,16 @@ use tauri::AppHandle;
 #[tauri::command]
 pub fn get_models() -> Vec<String> {
     scan_models()
+}
+
+#[tauri::command]
+pub fn get_input_devices() -> Vec<String> {
+    list_input_devices()
+}
+
+#[tauri::command]
+pub fn play_test_sound(name: String) {
+    play_sound(&name);
 }
 
 #[tauri::command]

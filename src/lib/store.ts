@@ -19,6 +19,7 @@ interface AppState {
     settings: Settings;
     history: HistoryItem[];
     models: string[];
+    microphones: string[];
     status: 'idle' | 'instruction' | 'content' | 'processing' | 'success';
     
     // Actions
@@ -27,6 +28,7 @@ interface AppState {
     fetchHistory: () => Promise<void>;
     clearHistory: () => Promise<void>;
     fetchModels: () => Promise<void>;
+    fetchMicrophones: () => Promise<void>;
     setStatus: (status: AppState['status']) => void;
 }
 
@@ -38,6 +40,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
     history: [],
     models: [],
+    microphones: [],
     status: 'idle',
 
     fetchSettings: async () => {
@@ -82,6 +85,15 @@ export const useAppStore = create<AppState>((set, get) => ({
             set({ models });
         } catch (error) {
             console.error('Failed to fetch models:', error);
+        }
+    },
+
+    fetchMicrophones: async () => {
+        try {
+            const microphones = await invoke<string[]>('get_input_devices');
+            set({ microphones });
+        } catch (error) {
+            console.error('Failed to fetch microphones:', error);
         }
     },
 
