@@ -107,7 +107,23 @@ pub fn start_recording(
         };
 
         if let Some(device) = device {
-            if let Ok(config) = device.default_input_config() {
+            // Try 16kHz config first for Whisper compatibility
+            let desired_sample_rate = cpal::SampleRate(16000);
+            let config = device
+                .supported_input_configs()
+                .ok()
+                .and_then(|mut configs| {
+                    // Try to find exact 16kHz support
+                    configs
+                        .find(|c| {
+                            c.min_sample_rate() <= desired_sample_rate
+                                && c.max_sample_rate() >= desired_sample_rate
+                        })
+                        .map(|c| c.with_sample_rate(desired_sample_rate))
+                })
+                .or_else(|| device.default_input_config().ok());
+
+            if let Some(config) = config {
                 let spec = hound::WavSpec {
                     channels: config.channels(),
                     sample_rate: config.sample_rate().0,

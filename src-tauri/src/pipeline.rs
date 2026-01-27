@@ -2,44 +2,55 @@ use crate::audio::play_sound;
 use crate::logic::{set_status, AppStatus};
 use crate::models::HistoryItem;
 use crate::store::{load_data, save_data};
-use base64::Engine;
 use reqwest::blocking::Client;
 use serde_json::{json, Value};
 use std::fs::File;
-use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
+use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 const OLLAMA_API_URL: &str = "http://localhost:11434/api/chat";
-const WHISPER_MODEL: &str = "karanchopda333/whisper";
+const MODEL_URL: &str =
+    "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin";
+const MODEL_FILENAME: &str = "ggml-base.en.bin";
 
 pub fn run_pipeline(app: AppHandle) {
     std::thread::spawn(move || {
         let _ = internal_run_pipeline(&app);
-        // Regardless of success/fail, we go back to idle eventually?
-        // Or if fail, maybe error state. For now idle.
+        // Regardless of success/fail, we go back to idle eventually
         set_status(&app, AppStatus::Idle);
     });
 }
 
 fn internal_run_pipeline(app: &AppHandle) -> Result<(), String> {
-    // 1. Get Paths
+    // 1. Get Paths and Ensure Model
     let instruction_path = app.path().app_data_dir().unwrap().join("instruction.wav");
     let content_path = app.path().app_data_dir().unwrap().join("content.wav");
+    let model_path = app.path().app_data_dir().unwrap().join(MODEL_FILENAME);
 
-    // 2. Load Settings
+    ensure_whisper_model(&model_path)?;
+
+    // 2. Load Settings & Model
     let data = load_data(app)?;
     let model = data.settings.model.clone();
 
+    // Load Whisper Context (can take some time, maybe cache this in state later if slow)
+    // For now simple load on demand
+    let ctx = WhisperContext::new_with_params(
+        &model_path.to_string_lossy(),
+        WhisperContextParameters::default(),
+    )
+    .map_err(|e| format!("Failed to load Whisper model: {}", e))?;
+
     // 3. Transcribe Instruction
     log::info!("Transcribing instruction...");
-    let instruction_text = transcribe(&instruction_path)?;
+    let instruction_text = transcribe_local(&ctx, &instruction_path)?;
     log::info!("Instruction: {}", instruction_text);
 
     // 4. Transcribe Content
     log::info!("Transcribing content...");
-    let content_text = transcribe(&content_path)?;
+    let content_text = transcribe_local(&ctx, &content_path)?;
     log::info!("Content: {}", content_text);
 
     // 5. Enrich
@@ -61,9 +72,6 @@ fn internal_run_pipeline(app: &AppHandle) -> Result<(), String> {
         enriched_content: enriched_text,
     };
 
-    // We need to load data again to append, avoiding overwrites if possible,
-    // but here we are in a single thread flow regarding data usually.
-    // Ideally use a database or improved store.rs, but reusing load/save is fine for this scale.
     let mut current_data = load_data(app)?;
     current_data.history.push(item);
     save_data(app, &current_data)?;
@@ -75,50 +83,100 @@ fn internal_run_pipeline(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn transcribe(path: &PathBuf) -> Result<String, String> {
+fn ensure_whisper_model(path: &PathBuf) -> Result<(), String> {
+    if path.exists() {
+        return Ok(());
+    }
+
+    log::info!("Downloading Whisper model to {:?}", path);
+    // Create dir if needed
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+
+    let mut response = Client::new()
+        .get(MODEL_URL)
+        .send()
+        .map_err(|e| format!("Failed to download model: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "Failed to download model, status: {}",
+            response.status()
+        ));
+    }
+
+    let mut file = File::create(path).map_err(|e| e.to_string())?;
+    response.copy_to(&mut file).map_err(|e| e.to_string())?;
+
+    log::info!("Model download complete.");
+    Ok(())
+}
+
+fn transcribe_local(ctx: &WhisperContext, path: &PathBuf) -> Result<String, String> {
     if !path.exists() {
         return Err(format!("File not found: {:?}", path));
     }
 
-    let mut file = File::open(path).map_err(|e| e.to_string())?;
-    let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer).map_err(|e| e.to_string())?;
+    // Read WAV and convert to f32 16kHz mono
+    // Note: audio.rs should now try to record 16kHz.
+    // If it recorded at another rate, this simple reader will fail context expectations
+    // because Whisper expects 16k.
 
-    // Encode audio to base64
-    // NOTE: karanchopda333/whisper via Ollama might expect wrapping or specific prompt.
-    // Based on community usage for whisper in ollama, usually one sends the filename if local,
-    // but via API it usually expects base64 or blob. Use base64 string.
-    let b64_audio = base64::engine::general_purpose::STANDARD.encode(&buffer);
+    let mut reader = hound::WavReader::open(path).map_err(|e| e.to_string())?;
+    let spec = reader.spec();
 
-    let client = Client::new();
-    let res = client
-        .post(OLLAMA_API_URL)
-        .json(&json!({
-            "model": WHISPER_MODEL,
-            "stream": false,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": b64_audio
-                }
-            ]
-        }))
-        .send()
-        .map_err(|e| format!("Ollama request failed: {}", e))?;
+    // Convert samples to f32
+    let samples: Vec<f32> = match spec.sample_format {
+        hound::SampleFormat::Int => reader
+            .samples::<i16>()
+            .map(|s| s.map(|x| x as f32 / 32768.0).unwrap_or(0.0))
+            .collect(),
+        hound::SampleFormat::Float => reader.samples::<f32>().map(|s| s.unwrap_or(0.0)).collect(),
+    };
 
-    if !res.status().is_success() {
-        return Err(format!("Ollama error: {}", res.status()));
+    // If stereo (channels=2), filter to mono (take every 2nd sample or average)
+    let mono_samples: Vec<f32> = if spec.channels == 2 {
+        samples
+            .chunks(2)
+            .map(|chunk| (chunk[0] + chunk[1]) / 2.0)
+            .collect()
+    } else {
+        samples
+    };
+
+    // Create state
+    let mut state = ctx
+        .create_state()
+        .map_err(|e| format!("Failed to create Whisper state: {}", e))?;
+
+    // Set params
+    let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+    params.set_n_threads(4);
+    params.set_language(Some("en"));
+    params.set_print_special(false);
+    params.set_print_progress(false);
+    params.set_print_realtime(false);
+    params.set_print_timestamps(false);
+
+    // Run
+    state
+        .full(params, &mono_samples[..])
+        .map_err(|e| format!("failed to run model: {}", e))?;
+
+    // Collect text
+    let num_segments = state.full_n_segments();
+    let mut text = String::new();
+    for i in 0..num_segments {
+        if let Some(segment) = state.get_segment(i) {
+            if let Ok(s) = segment.to_str() {
+                text.push_str(s);
+                text.push(' ');
+            }
+        }
     }
 
-    let body: Value = res.json().map_err(|e| e.to_string())?;
-
-    let content = body["message"]["content"]
-        .as_str()
-        .ok_or("Invalid response format from Ollama")?
-        .trim()
-        .to_string();
-
-    Ok(content)
+    Ok(text.trim().to_string())
 }
 
 fn enrich(instruction: &str, content: &str, model: &str) -> Result<String, String> {
