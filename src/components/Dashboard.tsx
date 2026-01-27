@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Activity, Mic, Brain, CheckCircle2 } from "lucide-react";
+import { Activity, Mic, Brain, CheckCircle2, Loader2 } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 
 export function Dashboard() {
@@ -43,11 +43,6 @@ export function Dashboard() {
         setStatusMessage("");
       });
 
-      unlistenPipelineStatus = await listen("pipeline-status", (event) => {
-        console.log("Pipeline status:", event.payload);
-        setStatusMessage(event.payload as string);
-      });
-
       unlistenPipelineComplete = await listen("pipeline-complete", (event) => {
         console.log("Pipeline complete:", event.payload);
         // Don't manually set status here - backend will emit status-changed to idle
@@ -60,7 +55,6 @@ export function Dashboard() {
     return () => {
       if (unlistenStatus) unlistenStatus();
       if (unlistenError) unlistenError();
-      if (unlistenPipelineStatus) unlistenPipelineStatus();
       if (unlistenPipelineComplete) unlistenPipelineComplete();
     };
   }, [fetchHistory]);
@@ -68,32 +62,32 @@ export function Dashboard() {
   const getStatusColor = (s: string) => {
     switch (s) {
       case "idle":
-        return "bg-gray-500";
+        return "bg-primary";
       case "instruction":
-        return "bg-blue-500 animate-pulse";
+        return "bg-primary animate-pulse";
       case "content":
-        return "bg-red-500 animate-pulse";
+        return "bg-primary animate-pulse";
       case "processing":
-        return "bg-yellow-500 animate-pulse";
+        return "bg-primary animate-pulse";
       case "success":
-        return "bg-green-500";
+        return "bg-primary";
       default:
-        return "bg-gray-500";
+        return "bg-primary";
     }
   };
 
   const getStatusIcon = (s: string) => {
     switch (s) {
       case "instruction":
-        return <Mic className="w-8 h-8 text-white" />;
+        return <Mic className="w-8 h-8 text-primary-foreground" />;
       case "content":
-        return <Mic className="w-8 h-8 text-white" />;
+        return <Mic className="w-8 h-8 text-primary-foreground" />;
       case "processing":
-        return <Brain className="w-8 h-8 text-white" />;
+        return <Brain className="w-8 h-8 text-primary-foreground" />;
       case "success":
-        return <CheckCircle2 className="w-8 h-8 text-white" />;
+        return <CheckCircle2 className="w-8 h-8 text-primary-foreground" />;
       default:
-        return <Activity className="w-8 h-8 text-white" />;
+        return <Mic className="w-8 h-8 text-primary-foreground" />;
     }
   };
 
@@ -120,15 +114,11 @@ export function Dashboard() {
     <div className="space-y-4 p-4">
       {/* Error Display */}
       {error && (
-        <Card className="border-red-500 bg-red-50 dark:bg-red-950">
+        <Card className="border-destructive bg-destructive/10">
           <CardContent className="py-4">
             <div className="flex items-start space-x-2">
-              <div className="text-red-600 dark:text-red-400 font-semibold">
-                Error:
-              </div>
-              <div className="text-red-700 dark:text-red-300 text-sm flex-1">
-                {error}
-              </div>
+              <div className="text-destructive font-semibold">Error:</div>
+              <div className="text-destructive/90 text-sm flex-1">{error}</div>
             </div>
           </CardContent>
         </Card>
@@ -146,23 +136,23 @@ export function Dashboard() {
             {getStatusText(status)}
           </h2>
           {statusMessage && (
-            <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
+            <p className="text-sm font-medium text-foreground">
               {statusMessage}
             </p>
           )}
           <p className="text-sm text-muted-foreground text-center mb-2">
-            {status === "idle"
-              ? "Press global hotkey or click below to start"
-              : "Processing your voice command"}
+            {status === "idle" && "Press global hotkey or click below to start"}
           </p>
-          <Button
-            onClick={triggerAction}
-            size="lg"
-            variant={status === "idle" ? "default" : "destructive"}
-            className="w-full max-w-xs"
-          >
-            {status === "idle" ? "Start Recording" : "Next Step / Stop"}
-          </Button>
+          {status === "idle" && (
+            <Button
+              onClick={triggerAction}
+              size="lg"
+              variant="default"
+              className="w-full max-w-xs"
+            >
+              Start Recording
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>
