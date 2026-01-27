@@ -14,8 +14,8 @@
       {
         "title": "Voice Intelligence",
         "width": 400,
-        "height": 600,
-        "resizable": true,
+        "height": 420,
+        "resizable": false,
         "fullscreen": false
       }
     ],

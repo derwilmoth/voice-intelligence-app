@@ -28,6 +28,7 @@ interface AppState {
     saveSettings: (settings: Settings) => Promise<void>;
     fetchHistory: () => Promise<void>;
     clearHistory: () => Promise<void>;
+    deleteHistoryItem: (id: string) => Promise<void>;
     fetchModels: () => Promise<void>;
     fetchMicrophones: () => Promise<void>;
     setStatus: (status: AppState['status']) => void;
@@ -80,6 +81,16 @@ export const useAppStore = create<AppState>((set, get) => ({
             set({ history: [] });
         } catch (error) {
             console.error('Failed to clear history:', error);
+        }
+    },
+
+    deleteHistoryItem: async (id: string) => {
+        try {
+            await invoke('delete_history_item', { id });
+            const history = get().history.filter(item => item.id !== id);
+            set({ history });
+        } catch (error) {
+            console.error('Failed to delete history item:', error);
         }
     },
 

@@ -71,6 +71,13 @@ pub fn clear_history(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn delete_history_item(app: AppHandle, id: String) -> Result<(), String> {
+    let mut data = load_data(&app)?;
+    data.history.retain(|item| item.id != id);
+    save_data(&app, &data)
+}
+
+#[tauri::command]
 pub fn get_app_info(app: AppHandle) -> Result<serde_json::Value, String> {
     let app_data_dir = app
         .path()

@@ -35,6 +35,7 @@ pub fn run() {
             commands::get_history,
             commands::add_history_item,
             commands::clear_history,
+            commands::delete_history_item,
             commands::get_app_info,
             manual_trigger
         ])

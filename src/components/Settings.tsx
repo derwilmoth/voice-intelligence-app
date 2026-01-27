@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { RefreshCw, Save, FolderOpen, FileText } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-shell";
@@ -50,110 +51,114 @@ export function Settings() {
   };
 
   return (
-    <div className="p-4 space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">AI Configuration</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="model">Ollama Model</Label>
-            <div className="flex gap-2">
-              <Select
-                value={localSettings.model}
-                onValueChange={(val) =>
-                  setLocalSettings({ ...localSettings, model: val })
-                }
-              >
-                <SelectTrigger id="model">
-                  <SelectValue placeholder="Select model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {models.length === 0 ? (
-                    <SelectItem value="none" disabled>
-                      No models found
-                    </SelectItem>
-                  ) : (
-                    models.map((m) => (
-                      <SelectItem key={m} value={m}>
-                        {m}
+    <ScrollArea className="h-[calc(100vh-80px)]">
+      <div className="p-4 space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">AI Configuration</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="model">Ollama Model</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={localSettings.model}
+                  onValueChange={(val) =>
+                    setLocalSettings({ ...localSettings, model: val })
+                  }
+                >
+                  <SelectTrigger id="model">
+                    <SelectValue placeholder="Select model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {models.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No models found
                       </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => fetchModels()}
-                title="Refresh Models"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
+                    ) : (
+                      models.map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {m}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => fetchModels()}
+                  title="Refresh Models"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Models detected in your .ollama directory.
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Models detected in your .ollama directory.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Input & Control</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="mic">Microphone</Label>
-            <div className="flex gap-2">
-              <Select
-                value={localSettings.microphone}
-                onValueChange={(val) =>
-                  setLocalSettings({ ...localSettings, microphone: val })
-                }
-              >
-                <SelectTrigger id="mic">
-                  <SelectValue placeholder="Select microphone" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">Default System Device</SelectItem>
-                  {microphones.map((mic) => (
-                    <SelectItem key={mic} value={mic}>
-                      {mic}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Input & Control</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="mic">Microphone</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={localSettings.microphone}
+                  onValueChange={(val) =>
+                    setLocalSettings({ ...localSettings, microphone: val })
+                  }
+                >
+                  <SelectTrigger id="mic">
+                    <SelectValue placeholder="Select microphone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">
+                      Default System Device
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => fetchMicrophones()}
-                title="Refresh Mics"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
+                    {microphones.map((mic) => (
+                      <SelectItem key={mic} value={mic}>
+                        {mic}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => fetchMicrophones()}
+                  title="Refresh Mics"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="hotkey">Global Hotkey</Label>
-            <Input
-              id="hotkey"
-              value={localSettings.hotkey}
-              onChange={(e) =>
-                setLocalSettings({ ...localSettings, hotkey: e.target.value })
-              }
-            />
-            <p className="text-xs text-muted-foreground">
-              Format: Modifiers+Key (e.g., Ctrl+I, Alt+Space)
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="space-y-2">
+              <Label htmlFor="hotkey">Global Hotkey</Label>
+              <Input
+                id="hotkey"
+                value={localSettings.hotkey}
+                onChange={(e) =>
+                  setLocalSettings({ ...localSettings, hotkey: e.target.value })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Format: Modifiers+Key (e.g., Ctrl+I, Alt+Space)
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
-      <Button className="w-full" onClick={handleSave}>
-        <Save className="mr-2 h-4 w-4" /> Save Settings
-      </Button>
-    </div>
+        <Button className="w-full" onClick={handleSave}>
+          <Save className="mr-2 h-4 w-4" /> Save Settings
+        </Button>
+      </div>
+    </ScrollArea>
   );
 }
