@@ -154,69 +154,6 @@ export function Settings() {
       <Button className="w-full" onClick={handleSave}>
         <Save className="mr-2 h-4 w-4" /> Save Settings
       </Button>
-
-      {/* Diagnostic Info */}
-      {appInfo && (
-        <Card className="border-muted">
-          <CardHeader>
-            <CardTitle className="text-lg">Diagnostic Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div>
-              <Label className="text-xs text-muted-foreground">
-                Build Mode
-              </Label>
-              <p className="font-mono">{appInfo.build_mode}</p>
-            </div>
-            {appInfo.app_data_dir && (
-              <div>
-                <Label className="text-xs text-muted-foreground">
-                  App Data Directory
-                </Label>
-                <div className="flex gap-2 items-center">
-                  <p className="font-mono text-xs flex-1 break-all">
-                    {appInfo.app_data_dir}
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => open(appInfo.app_data_dir)}
-                    title="Open folder"
-                  >
-                    <FolderOpen className="h-3 w-3" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Contains settings.json, history.json, and audio files
-                </p>
-              </div>
-            )}
-            {appInfo.log_dir && (
-              <div>
-                <Label className="text-xs text-muted-foreground">
-                  Log Directory
-                </Label>
-                <div className="flex gap-2 items-center">
-                  <p className="font-mono text-xs flex-1 break-all">
-                    {appInfo.log_dir}
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => open(appInfo.log_dir)}
-                    title="Open log folder"
-                  >
-                    <FileText className="h-3 w-3" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Check app.log for error messages (release mode only)
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

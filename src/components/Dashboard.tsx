@@ -27,6 +27,7 @@ export function Dashboard() {
     let unlistenStatus: () => void;
     let unlistenError: () => void;
     let unlistenPipelineStatus: () => void;
+    let unlistenPipelineComplete: () => void;
 
     async function setupListeners() {
       unlistenStatus = await listen("status-changed", (event) => {
@@ -46,6 +47,13 @@ export function Dashboard() {
         console.log("Pipeline status:", event.payload);
         setStatusMessage(event.payload as string);
       });
+
+      unlistenPipelineComplete = await listen("pipeline-complete", (event) => {
+        console.log("Pipeline complete:", event.payload);
+        // Don't manually set status here - backend will emit status-changed to idle
+        fetchHistory(); // Refresh history to show the new item
+        setStatusMessage("");
+      });
     }
     setupListeners();
 
@@ -53,8 +61,9 @@ export function Dashboard() {
       if (unlistenStatus) unlistenStatus();
       if (unlistenError) unlistenError();
       if (unlistenPipelineStatus) unlistenPipelineStatus();
+      if (unlistenPipelineComplete) unlistenPipelineComplete();
     };
-  }, []);
+  }, [fetchHistory]);
 
   const getStatusColor = (s: string) => {
     switch (s) {
