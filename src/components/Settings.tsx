@@ -137,7 +137,7 @@ export function Settings() {
               }
             />
             <p className="text-xs text-muted-foreground">
-              Format: Modifiers+Key (e.g., CommandOrControl+Shift+Space)
+              Format: Modifiers+Key (e.g., Ctrl+I, Alt+Space)
             </p>
           </div>
         </CardContent>

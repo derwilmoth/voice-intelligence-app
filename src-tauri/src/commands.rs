@@ -3,6 +3,8 @@ use crate::models::{AppStateData, HistoryItem, Settings};
 use crate::ollama::scan_models;
 use crate::store::{load_data, save_data};
 use tauri::AppHandle;
+#[cfg(desktop)]
+use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
 #[tauri::command]
 pub fn get_models() -> Vec<String> {
@@ -27,6 +29,21 @@ pub fn get_settings(app: AppHandle) -> Result<Settings, String> {
 
 #[tauri::command]
 pub fn save_settings(app: AppHandle, settings: Settings) -> Result<(), String> {
+    #[cfg(desktop)]
+    {
+        // Unregister all existing shortcuts
+        if let Err(e) = app.global_shortcut().unregister_all() {
+            log::error!("Failed to unregister hotkeys: {}", e);
+        }
+        // Register the new hotkey
+        if let Err(e) = app.global_shortcut().register(settings.hotkey.as_str()) {
+            return Err(format!(
+                "Failed to register hotkey '{}': {}",
+                settings.hotkey, e
+            ));
+        }
+    }
+
     let mut data = load_data(&app)?;
     data.settings = settings;
     save_data(&app, &data)

@@ -3,15 +3,31 @@
 import React, { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Activity, Mic, Brain, CheckCircle2 } from "lucide-react";
+import { listen } from "@tauri-apps/api/event";
 
 export function Dashboard() {
-  const { status, history, fetchHistory } = useAppStore();
+  const { status, history, fetchHistory, setStatus, triggerAction } =
+    useAppStore();
 
   useEffect(() => {
     fetchHistory();
+
+    let unlisten: () => void;
+
+    async function setupListener() {
+      unlisten = await listen("status-changed", (event) => {
+        setStatus(event.payload as any);
+      });
+    }
+    setupListener();
+
+    return () => {
+      if (unlisten) unlisten();
+    };
   }, []);
 
   const getStatusColor = (s: string) => {
@@ -78,11 +94,19 @@ export function Dashboard() {
           <h2 className="text-xl font-semibold tracking-tight">
             {getStatusText(status)}
           </h2>
-          <p className="text-sm text-muted-foreground text-center">
+          <p className="text-sm text-muted-foreground text-center mb-2">
             {status === "idle"
-              ? "Press global hotkey to start"
+              ? "Press global hotkey or click below to start"
               : "Processing your voice command"}
           </p>
+          <Button
+            onClick={triggerAction}
+            size="lg"
+            variant={status === "idle" ? "default" : "destructive"}
+            className="w-full max-w-xs"
+          >
+            {status === "idle" ? "Start Recording" : "Next Step / Stop"}
+          </Button>
         </CardContent>
       </Card>
 

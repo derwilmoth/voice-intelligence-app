@@ -10,9 +10,9 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            model: "gemma3:4b".to_string(), // Default as per requirements
+            model: "gemma2:2b".to_string(), // Default as per requirements
             microphone: "default".to_string(),
-            hotkey: "CommandOrControl+Shift+Space".to_string(), // Example default
+            hotkey: "Ctrl+I".to_string(),
         }
     }
 }

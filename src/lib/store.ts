@@ -30,13 +30,14 @@ interface AppState {
     fetchModels: () => Promise<void>;
     fetchMicrophones: () => Promise<void>;
     setStatus: (status: AppState['status']) => void;
+    triggerAction: () => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
     settings: {
         model: 'gemma:4b',
         microphone: 'default',
-        hotkey: 'CommandOrControl+Shift+Space'
+        hotkey: 'Ctrl+I'
     },
     history: [],
     models: [],
@@ -97,5 +98,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
     },
 
-    setStatus: (status) => set({ status })
+    setStatus: (status) => set({ status }),
+
+    triggerAction: async () => {
+        try {
+            await invoke('manual_trigger');
+        } catch (error) {
+            console.error('Failed to trigger action:', error);
+        }
+    },
 }));
