@@ -5,6 +5,7 @@ export interface Settings {
     model: string;
     microphone: string;
     hotkey: string;
+    recording_timeout_minutes: number;
 }
 
 export interface HistoryItem {
@@ -41,7 +42,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     settings: {
         model: 'gemma:4b',
         microphone: 'default',
-        hotkey: 'Ctrl+I'
+        hotkey: 'Ctrl+I',
+        recording_timeout_minutes: 10
     },
     history: [],
     models: [],

@@ -53,7 +53,9 @@ export function Settings() {
   const hasChanges =
     localSettings.model !== settings.model ||
     localSettings.microphone !== settings.microphone ||
-    localSettings.hotkey !== settings.hotkey;
+    localSettings.hotkey !== settings.hotkey ||
+    localSettings.recording_timeout_minutes !==
+      settings.recording_timeout_minutes;
 
   return (
     <div className="flex flex-col h-full">
@@ -163,6 +165,27 @@ export function Settings() {
                   />
                   <p className="text-xs text-muted-foreground">
                     Format: Modifiers+Key (e.g., Ctrl+I, Alt+Space)
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="timeout">Recording Timeout (minutes)</Label>
+                  <Input
+                    id="timeout"
+                    type="number"
+                    min="1"
+                    max="60"
+                    value={localSettings.recording_timeout_minutes}
+                    onChange={(e) =>
+                      setLocalSettings({
+                        ...localSettings,
+                        recording_timeout_minutes:
+                          parseInt(e.target.value) || 10,
+                      })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Maximum duration before auto-timeout (1-60 minutes)
                   </p>
                 </div>
               </CardContent>

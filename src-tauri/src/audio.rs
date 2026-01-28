@@ -6,6 +6,7 @@ use std::io::BufWriter;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use tauri::{AppHandle, Emitter};
 
 pub struct AudioState {
     pub stop_sender: Arc<Mutex<Option<std::sync::mpsc::Sender<()>>>>,
@@ -80,6 +81,8 @@ pub fn start_recording(
     state: &AudioState,
     device_name: Option<String>,
     output_path: PathBuf,
+    timeout_minutes: u32,
+    app: AppHandle,
 ) -> Result<(), String> {
     let (tx, rx) = std::sync::mpsc::channel();
 
@@ -92,6 +95,9 @@ pub fn start_recording(
         let mut recording = state.recording_active.lock().unwrap();
         *recording = true;
     }
+
+    let timeout_duration = Duration::from_secs(timeout_minutes as u64 * 60);
+    let recording_active = state.recording_active.clone();
 
     // Spawn thread to handle stream lifetime
     std::thread::spawn(move || {
@@ -169,9 +175,25 @@ pub fn start_recording(
 
                     if let Ok(stream) = stream_res {
                         if stream.play().is_ok() {
-                            // Wait for stop signal
-                            let _ = rx.recv();
-                            // Stream drops here, stopping recording
+                            // Wait for stop signal or timeout
+                            let recv_result = rx.recv_timeout(timeout_duration);
+
+                            // Check if it was a timeout
+                            if recv_result.is_err() {
+                                // Timeout occurred
+                                let mut recording = recording_active.lock().unwrap();
+                                *recording = false;
+
+                                // Emit timeout event and reset to idle
+                                let _ = app.emit(
+                                    "recording-timeout",
+                                    "Recording exceeded maximum duration",
+                                );
+
+                                // Play error sound
+                                play_sound("Click");
+                            }
+                            // Stream drops here, stopping recording (either on signal or timeout)
                         }
                     }
                 }

@@ -15,15 +15,14 @@ import {
   AudioLines,
 } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
+import { toast } from "sonner";
 
 export function State() {
   const {
     status,
     history,
-    error,
     fetchHistory,
     setStatus,
-    setError,
     triggerAction,
     stopPipeline,
   } = useAppStore();
@@ -32,30 +31,44 @@ export function State() {
   useEffect(() => {
     fetchHistory();
 
-    let unlistenStatus: () => void;
-    let unlistenError: () => void;
-    let unlistenPipelineStatus: () => void;
-    let unlistenPipelineComplete: () => void;
+    let unlistenStatus: (() => void) | undefined;
+    let unlistenError: (() => void) | undefined;
+    let unlistenPipelineStatus: (() => void) | undefined;
+    let unlistenPipelineComplete: (() => void) | undefined;
+    let unlistenRecordingTimeout: (() => void) | undefined;
 
     async function setupListeners() {
       unlistenStatus = await listen("status-changed", (event) => {
         setStatus(event.payload as any);
-        // Clear error when status changes
-        setError(null);
         setStatusMessage("");
       });
 
       unlistenError = await listen("pipeline-error", (event) => {
         console.error("Pipeline error:", event.payload);
-        setError(event.payload as string);
+        toast.error("Pipeline Error", {
+          description: event.payload as string,
+          duration: 5000,
+        });
         setStatusMessage("");
       });
 
       unlistenPipelineComplete = await listen("pipeline-complete", (event) => {
         console.log("Pipeline complete:", event.payload);
-        // Don't manually set status here - backend will emit status-changed to idle
-        fetchHistory(); // Refresh history to show the new item
+        toast.success("Success!", {
+          description: "Content has been enriched and copied to clipboard",
+          duration: 3000,
+        });
+        fetchHistory();
         setStatusMessage("");
+      });
+
+      unlistenRecordingTimeout = await listen("recording-timeout", (event) => {
+        console.warn("Recording timeout:", event.payload);
+        toast.error("Recording Timeout", {
+          description: event.payload as string,
+          duration: 5000,
+        });
+        setStatus("idle");
       });
     }
     setupListeners();
@@ -64,8 +77,9 @@ export function State() {
       if (unlistenStatus) unlistenStatus();
       if (unlistenError) unlistenError();
       if (unlistenPipelineComplete) unlistenPipelineComplete();
+      if (unlistenRecordingTimeout) unlistenRecordingTimeout();
     };
-  }, [fetchHistory]);
+  }, []);
 
   const getStatusColor = (s: string) => {
     switch (s) {
@@ -120,18 +134,6 @@ export function State() {
 
   return (
     <div className="space-y-4 p-4">
-      {/* Error Display */}
-      {error && (
-        <Card className="border-destructive bg-destructive/10">
-          <CardContent className="py-4">
-            <div className="flex items-start space-x-2">
-              <div className="text-destructive font-semibold">Error:</div>
-              <div className="text-destructive/90 text-sm flex-1">{error}</div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Status Indicator */}
       <Card className="border-none shadow-md bg-secondary/20">
         <CardContent className="flex flex-col items-center justify-center py-6 space-y-3">
@@ -148,7 +150,7 @@ export function State() {
               {statusMessage}
             </p>
           )}
-          <p className="text-sm text-muted-foreground text-center mb-2">
+          <p className="text-sm text-muted-foreground text-center mb-4">
             {status === "idle"
               ? "Press global hotkey or click below to start"
               : status === "instruction"
@@ -162,7 +164,11 @@ export function State() {
             status == "instruction" ||
             status == "content") && (
             <Button onClick={triggerAction} size="lg" variant="default">
-              {status === "idle" ? "Start Recording" : "Continue"}
+              {status === "idle"
+                ? "Record Instruction"
+                : status === "instruction"
+                  ? "Record Content"
+                  : "Continue Processing"}
             </Button>
           )}
           {status === "processing" && (

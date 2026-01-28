@@ -5,6 +5,7 @@ pub struct Settings {
     pub model: String,
     pub microphone: String,
     pub hotkey: String,
+    pub recording_timeout_minutes: u32,
 }
 
 impl Default for Settings {
@@ -13,6 +14,7 @@ impl Default for Settings {
             model: "gemma3:4b".to_string(), // Default as per requirements
             microphone: "default".to_string(),
             hotkey: "Ctrl+I".to_string(),
+            recording_timeout_minutes: 10,
         }
     }
 }

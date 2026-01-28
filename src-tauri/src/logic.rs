@@ -1,4 +1,5 @@
 use crate::audio::{play_sound, start_recording, stop_recording, AudioState};
+use crate::store::load_data;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
@@ -42,6 +43,10 @@ pub fn handle_trigger(app: &AppHandle) {
     let mut status = logic_state.status.lock().unwrap();
     let current = *status;
 
+    let timeout_minutes = load_data(app)
+        .map(|data| data.settings.recording_timeout_minutes)
+        .unwrap_or(10);
+
     let new_status = match current {
         AppStatus::Idle => {
             // Idle -> Instruction
@@ -49,9 +54,7 @@ pub fn handle_trigger(app: &AppHandle) {
 
             // Start Recording 1
             let path = get_audio_path(app, "instruction.wav");
-            // Use default device from settings? For now default.
-            // Ideally we read settings here.
-            let _ = start_recording(&audio_state, None, path);
+            let _ = start_recording(&audio_state, None, path, timeout_minutes, app.clone());
 
             AppStatus::Instruction
         }
@@ -64,7 +67,7 @@ pub fn handle_trigger(app: &AppHandle) {
 
             // Start Recording 2
             let path = get_audio_path(app, "content.wav");
-            let _ = start_recording(&audio_state, None, path);
+            let _ = start_recording(&audio_state, None, path, timeout_minutes, app.clone());
 
             AppStatus::Content
         }
