@@ -15,6 +15,12 @@ pub struct AudioState {
     pub recording_active: Arc<Mutex<bool>>,
 }
 
+impl Default for AudioState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AudioState {
     pub fn new() -> Self {
         Self {

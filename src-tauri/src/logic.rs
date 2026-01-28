@@ -28,6 +28,12 @@ pub struct LogicState {
     pub status: Arc<Mutex<AppStatus>>,
 }
 
+impl Default for LogicState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LogicState {
     pub fn new() -> Self {
         Self {

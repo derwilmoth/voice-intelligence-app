@@ -12,9 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { RefreshCw, Save, FolderOpen, FileText } from "lucide-react";
+import { RefreshCw, Save, FileText } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-shell";
 
@@ -109,7 +109,7 @@ export function Settings() {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Models detected in your .ollama directory.
+                    Models detected in your .ollama directory
                   </p>
                 </div>
               </CardContent>

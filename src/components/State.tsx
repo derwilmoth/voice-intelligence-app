@@ -1,31 +1,16 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Activity,
-  Mic,
-  Brain,
-  CheckCircle2,
-  Loader2,
-  AudioLines,
-} from "lucide-react";
+import { Mic, Brain, CheckCircle2 } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { toast } from "sonner";
 
 export function State() {
-  const {
-    status,
-    history,
-    fetchHistory,
-    setStatus,
-    triggerAction,
-    stopPipeline,
-  } = useAppStore();
+  const { status, fetchHistory, setStatus, triggerAction, stopPipeline } =
+    useAppStore();
   const [statusMessage, setStatusMessage] = React.useState<string>("");
 
   useEffect(() => {
@@ -129,8 +114,6 @@ export function State() {
         return "Ready";
     }
   };
-
-  const recentHistory = history.slice(-3).reverse();
 
   return (
     <div className="space-y-4 p-4">
