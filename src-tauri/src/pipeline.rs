@@ -24,6 +24,10 @@ const OLLAMA_API_URL: &str = "http://localhost:11434/api/chat";
 const MODEL_URL: &str =
     "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q8_0.bin";
 const MODEL_FILENAME: &str = "ggml-large-v3-turbo-q8_0.bin";
+// Expected size of the Whisper model in bytes (~833 MB)
+// This helps detect incomplete downloads
+const EXPECTED_MODEL_SIZE: u64 = 874_188_075; // Actual model size
+const MODEL_SIZE_TOLERANCE: u64 = 10_485_760; // Allow 10MB variance
 
 pub fn run_pipeline(app: AppHandle) {
     // Reset cancel flag
@@ -129,9 +133,44 @@ fn internal_run_pipeline(app: &AppHandle) -> Result<(), String> {
 }
 
 fn ensure_whisper_model(app: &AppHandle, path: &PathBuf) -> Result<(), String> {
+    // Check if file exists and validate its size
     if path.exists() {
-        log::info!("Whisper model found at {:?}", path);
-        return Ok(());
+        match std::fs::metadata(path) {
+            Ok(metadata) => {
+                let file_size = metadata.len();
+                log::info!(
+                    "Whisper model found at {:?}, size: {} bytes",
+                    path,
+                    file_size
+                );
+
+                // Check if file size is within expected range
+                if file_size >= EXPECTED_MODEL_SIZE - MODEL_SIZE_TOLERANCE
+                    && file_size <= EXPECTED_MODEL_SIZE + MODEL_SIZE_TOLERANCE
+                {
+                    log::info!("Whisper model size validated successfully");
+                    return Ok(());
+                } else {
+                    log::warn!(
+                        "Whisper model has unexpected size: {} bytes (expected ~{} bytes). Likely corrupted or incomplete download. Deleting and re-downloading...",
+                        file_size,
+                        EXPECTED_MODEL_SIZE
+                    );
+                    // Delete corrupted/incomplete file
+                    if let Err(e) = std::fs::remove_file(path) {
+                        log::error!("Failed to delete corrupted model file: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                log::warn!(
+                    "Could not read model file metadata: {}. Will attempt re-download.",
+                    e
+                );
+                // Try to delete the file
+                let _ = std::fs::remove_file(path);
+            }
+        }
     }
 
     log::info!("Whisper model not found. Downloading to {:?}", path);
@@ -167,6 +206,16 @@ fn ensure_whisper_model(app: &AppHandle, path: &PathBuf) -> Result<(), String> {
         ));
     }
 
+    // Get expected content length if available
+    let content_length = response.content_length();
+    if let Some(size) = content_length {
+        log::info!(
+            "Expected download size: {} bytes (~{:.2} GB)",
+            size,
+            size as f64 / 1_000_000_000.0
+        );
+    }
+
     let mut file = File::create(path).map_err(|e| {
         format!(
             "Failed to create model file. Please check write permissions. Error: {}",
@@ -174,10 +223,29 @@ fn ensure_whisper_model(app: &AppHandle, path: &PathBuf) -> Result<(), String> {
         )
     })?;
 
-    response.copy_to(&mut file)
-        .map_err(|e| format!("Failed to save model file. Please ensure you have enough disk space (~1.5GB). Error: {}", e))?;
+    let bytes_written = response.copy_to(&mut file)
+        .map_err(|e| {
+            // If download fails, delete the incomplete file
+            let _ = std::fs::remove_file(path);
+            format!("Failed to save model file. Please ensure you have enough disk space (~1.5GB). Error: {}", e)
+        })?;
 
-    log::info!("Whisper model download complete!");
+    log::info!(
+        "Whisper model download complete! Downloaded {} bytes",
+        bytes_written
+    );
+
+    // Verify the downloaded file size
+    if let Some(expected) = content_length {
+        if bytes_written != expected {
+            let _ = std::fs::remove_file(path);
+            return Err(format!(
+                "Download incomplete: received {} bytes but expected {} bytes. Please try again.",
+                bytes_written, expected
+            ));
+        }
+    }
+
     Ok(())
 }
 
