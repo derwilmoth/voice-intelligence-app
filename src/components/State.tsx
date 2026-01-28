@@ -24,8 +24,10 @@ export function State() {
   const [statusMessage, setStatusMessage] = React.useState<string>("");
   const [showStopDialog, setShowStopDialog] = useState(false);
 
-  const handleStopProcessing = () => {
-    stopPipeline();
+  const handleStopProcessing = async () => {
+    await stopPipeline();
+    // Immediately fetch status from JSON to reflect the stop
+    await fetchStatus();
     setShowStopDialog(false);
   };
 
@@ -187,7 +189,7 @@ export function State() {
               size="lg"
               variant="destructive"
             >
-              Stop Processing
+              Cancel Session
             </Button>
           )}
         </CardContent>

@@ -37,16 +37,19 @@ pub fn run_pipeline(app: AppHandle) {
         match internal_run_pipeline(&app) {
             Ok(_) => {
                 log::info!("Pipeline completed successfully");
+                // Only set status to Idle on successful completion
+                // This ensures we don't interrupt a new session that may have started
+                set_status(&app, AppStatus::Idle);
             }
             Err(e) => {
                 log::error!("Pipeline failed: {}", e);
                 // Emit error event to frontend
                 app.emit("pipeline-error", e.clone()).unwrap_or_default();
                 play_sound("Click"); // Error sound
+                                     // DO NOT reset status here - the user may have already started a new session
+                                     // The stop_pipeline command already sets status to Idle immediately when user stops
             }
         }
-        // Go back to idle after completion or error
-        set_status(&app, AppStatus::Idle);
     });
 }
 
