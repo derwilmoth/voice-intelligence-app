@@ -189,7 +189,7 @@ export function State() {
               size="lg"
               variant="destructive"
             >
-              Cancel Session
+              Stop Session
             </Button>
           )}
         </CardContent>
@@ -205,7 +205,7 @@ export function State() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Continue</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleStopProcessing}>
               Stop
             </AlertDialogAction>

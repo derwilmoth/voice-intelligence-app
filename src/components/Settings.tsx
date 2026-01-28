@@ -82,10 +82,10 @@ export function Settings() {
                         setLocalSettings({ ...localSettings, model: val })
                       }
                     >
-                      <SelectTrigger id="model">
+                      <SelectTrigger id="model" className="w-69">
                         <SelectValue placeholder="Select model" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="w-69">
                         {models.length === 0 ? (
                           <SelectItem value="none" disabled>
                             No models found
@@ -126,10 +126,10 @@ export function Settings() {
                         setLocalSettings({ ...localSettings, microphone: val })
                       }
                     >
-                      <SelectTrigger id="mic">
+                      <SelectTrigger id="mic" className="w-69">
                         <SelectValue placeholder="Select microphone" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="w-69">
                         <SelectItem value="default">
                           Default System Device
                         </SelectItem>
