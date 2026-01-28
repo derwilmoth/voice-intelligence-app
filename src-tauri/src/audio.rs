@@ -8,6 +8,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
+use crate::logic::{set_status, AppStatus};
+
 pub struct AudioState {
     pub stop_sender: Arc<Mutex<Option<std::sync::mpsc::Sender<()>>>>,
     pub recording_active: Arc<Mutex<bool>>,
@@ -184,7 +186,10 @@ pub fn start_recording(
                                 let mut recording = recording_active.lock().unwrap();
                                 *recording = false;
 
-                                // Emit timeout event and reset to idle
+                                // Reset backend state to Idle
+                                set_status(&app, AppStatus::Idle);
+
+                                // Emit timeout event
                                 let _ = app.emit(
                                     "recording-timeout",
                                     "Recording exceeded maximum duration",
