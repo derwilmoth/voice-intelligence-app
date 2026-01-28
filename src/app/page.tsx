@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { State } from "@/components/State";
 import { Settings } from "@/components/Settings";
@@ -9,11 +10,28 @@ import {
   Settings as SettingsIcon,
   History as HistoryIcon,
 } from "lucide-react";
+import { useAppStore } from "@/lib/store";
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState("state");
+  const { fetchStatus } = useAppStore();
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // Refetch status from JSON when switching to State tab
+    if (value === "state") {
+      fetchStatus();
+    }
+  };
+
   return (
     <main className="h-screen w-screen bg-background text-foreground overflow-hidden">
-      <Tabs defaultValue="state" className="h-full flex flex-col">
+      <Tabs
+        defaultValue="state"
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="h-full flex flex-col"
+      >
         <div className="border-b px-4 py-2 bg-muted/20">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="state">

@@ -27,6 +27,7 @@ pub fn run() {
         .manage(AudioState::new())
         .manage(LogicState::new())
         .invoke_handler(tauri::generate_handler![
+            commands::get_current_status,
             commands::get_models,
             commands::get_input_devices,
             commands::play_test_sound,

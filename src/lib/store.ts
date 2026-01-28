@@ -32,6 +32,7 @@ interface AppState {
     deleteHistoryItem: (id: string) => Promise<void>;
     fetchModels: () => Promise<void>;
     fetchMicrophones: () => Promise<void>;
+    fetchStatus: () => Promise<void>;
     setStatus: (status: AppState['status']) => void;
     setError: (error: string | null) => void;
     triggerAction: () => Promise<void>;
@@ -112,6 +113,15 @@ export const useAppStore = create<AppState>((set, get) => ({
             set({ microphones });
         } catch (error) {
             console.error('Failed to fetch microphones:', error);
+        }
+    },
+
+    fetchStatus: async () => {
+        try {
+            const status = await invoke<string>('get_current_status');
+            set({ status: status as AppState['status'] });
+        } catch (error) {
+            console.error('Failed to fetch status:', error);
         }
     },
 

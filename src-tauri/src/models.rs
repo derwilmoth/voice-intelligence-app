@@ -32,4 +32,10 @@ pub struct HistoryItem {
 pub struct AppStateData {
     pub settings: Settings,
     pub history: Vec<HistoryItem>,
+    #[serde(default = "default_status")]
+    pub status: String,
+}
+
+fn default_status() -> String {
+    "idle".to_string()
 }

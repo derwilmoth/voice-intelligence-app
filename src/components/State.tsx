@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export function State() {
-  const { status, fetchHistory, setStatus, triggerAction, stopPipeline } =
+  const { status, fetchHistory, fetchStatus, triggerAction, stopPipeline } =
     useAppStore();
   const [statusMessage, setStatusMessage] = React.useState<string>("");
   const [showStopDialog, setShowStopDialog] = useState(false);
@@ -30,6 +30,8 @@ export function State() {
   };
 
   useEffect(() => {
+    // Fetch initial status from JSON
+    fetchStatus();
     fetchHistory();
 
     let unlistenStatus: (() => void) | undefined;
@@ -40,7 +42,8 @@ export function State() {
 
     async function setupListeners() {
       unlistenStatus = await listen("status-changed", (event) => {
-        setStatus(event.payload as any);
+        // Fetch status from JSON instead of using event payload directly
+        fetchStatus();
         setStatusMessage("");
       });
 
@@ -69,16 +72,24 @@ export function State() {
           description: event.payload as string,
           duration: 5000,
         });
-        setStatus("idle");
+        // Fetch status from JSON instead of setting directly
+        fetchStatus();
       });
     }
     setupListeners();
+
+    // Refetch status when window gains focus
+    const handleFocus = () => {
+      fetchStatus();
+    };
+    window.addEventListener("focus", handleFocus);
 
     return () => {
       if (unlistenStatus) unlistenStatus();
       if (unlistenError) unlistenError();
       if (unlistenPipelineComplete) unlistenPipelineComplete();
       if (unlistenRecordingTimeout) unlistenRecordingTimeout();
+      window.removeEventListener("focus", handleFocus);
     };
   }, []);
 

@@ -1,10 +1,15 @@
 use crate::audio::{list_input_devices, play_sound};
 use crate::models::{HistoryItem, Settings};
 use crate::ollama::scan_models;
-use crate::store::{load_data, save_data};
+use crate::store::{get_status, load_data, save_data};
 use tauri::{AppHandle, Manager};
 #[cfg(desktop)]
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+#[tauri::command]
+pub fn get_current_status(app: AppHandle) -> Result<String, String> {
+    get_status(&app)
+}
 
 #[tauri::command]
 pub fn get_models() -> Vec<String> {

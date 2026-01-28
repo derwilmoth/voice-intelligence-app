@@ -1,5 +1,5 @@
 use crate::audio::{play_sound, start_recording, stop_recording, AudioState};
-use crate::store::load_data;
+use crate::store::{get_status, load_data, set_status as store_set_status};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
@@ -43,11 +43,24 @@ impl LogicState {
 }
 
 pub fn handle_trigger(app: &AppHandle) {
-    let logic_state = app.state::<LogicState>();
     let audio_state = app.state::<AudioState>();
 
-    let mut status = logic_state.status.lock().unwrap();
-    let current = *status;
+    // Get current status from JSON
+    let current_status_str = match get_status(app) {
+        Ok(s) => s,
+        Err(e) => {
+            log::error!("Failed to get status from JSON: {}", e);
+            return;
+        }
+    };
+
+    let current = match current_status_str.as_str() {
+        "idle" => AppStatus::Idle,
+        "instruction" => AppStatus::Instruction,
+        "content" => AppStatus::Content,
+        "processing" => AppStatus::Processing,
+        _ => AppStatus::Idle,
+    };
 
     let timeout_minutes = load_data(app)
         .map(|data| data.settings.recording_timeout_minutes)
@@ -97,15 +110,17 @@ pub fn handle_trigger(app: &AppHandle) {
         }
     };
 
-    *status = new_status;
-    let _ = app.emit("status-changed", new_status.as_str());
+    set_status(app, new_status);
 }
 
 pub fn set_status(app: &AppHandle, new_status: AppStatus) {
-    let logic_state = app.state::<LogicState>();
-    let mut status = logic_state.status.lock().unwrap();
-    *status = new_status;
-    let _ = app.emit("status-changed", new_status.as_str());
+    let status_str = new_status.as_str();
+    // Update status in JSON
+    if let Err(e) = store_set_status(app, status_str) {
+        log::error!("Failed to save status to JSON: {}", e);
+    }
+    // Emit event to notify frontend
+    let _ = app.emit("status-changed", status_str);
 }
 
 fn get_audio_path(app: &AppHandle, filename: &str) -> PathBuf {
