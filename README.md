@@ -34,6 +34,9 @@ A desktop application that uses voice input to enrich content with AI. Built wit
 - You should be able to execute the portable out of the box
 - Not available/tested for many architectures/operating systems
 
+## German Demo
+[![Watch the video](https://img.youtube.com/vi/1UWuSE-b7DE/maxresdefault.jpg)](https://youtu.be/1UWuSE-b7DE)
+
 ## Prerequisites for Build
 
 - **Node.js** (v18 or later)
@@ -118,7 +121,7 @@ Ensure Ollama is running on `http://localhost:11434`. If you see connection erro
 
 - Start Ollama: `ollama serve`
 - Verify models are installed: `ollama list`
-- Pull a model if needed: `ollama pull gemma2:2b`
+- Pull a model if needed: `ollama pull gemma3:4b`
 
 ### Audio Issues
 
