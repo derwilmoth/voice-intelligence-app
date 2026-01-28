@@ -8,12 +8,20 @@ pub mod store;
 
 use audio::AudioState;
 use logic::LogicState;
+use tauri::AppHandle;
 use tauri::Manager;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+
+fn persist_idle_status(app: &AppHandle) {
+    // Best-effort: ensure we never persist a non-idle status across app restarts.
+    if let Err(e) = store::set_status(app, "idle") {
+        log::error!("Failed to persist idle status on shutdown/startup: {}", e);
+    }
+}
 
 #[tauri::command]
 fn manual_trigger(app: tauri::AppHandle) {
@@ -93,6 +101,10 @@ pub fn run() {
                     log::error!("Failed to register hotkey: {}", e);
                 }
 
+                // If the previous session ended while mid-flow, force-reset persisted status.
+                // This also prevents stale "processing"/"instruction"/"content" state on next start.
+                persist_idle_status(handle);
+
                 // Tray Icon Setup
                 let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
                 let show_i = MenuItem::with_id(app, "show", "Show UI", true, None::<&str>)?;
@@ -103,6 +115,8 @@ pub fn run() {
                     .show_menu_on_left_click(false)
                     .on_menu_event(|app, event| match event.id.as_ref() {
                         "quit" => {
+                            // When exiting the app entirely, ensure status is persisted as idle.
+                            persist_idle_status(app);
                             app.exit(0);
                         }
                         "show" => {
