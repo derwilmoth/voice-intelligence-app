@@ -1,17 +1,33 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
 import { Mic, Brain, CheckCircle2 } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function State() {
   const { status, fetchHistory, setStatus, triggerAction, stopPipeline } =
     useAppStore();
   const [statusMessage, setStatusMessage] = React.useState<string>("");
+  const [showStopDialog, setShowStopDialog] = useState(false);
+
+  const handleStopProcessing = () => {
+    stopPipeline();
+    setShowStopDialog(false);
+  };
 
   useEffect(() => {
     fetchHistory();
@@ -155,12 +171,34 @@ export function State() {
             </Button>
           )}
           {status === "processing" && (
-            <Button onClick={stopPipeline} size="lg" variant="destructive">
+            <Button
+              onClick={() => setShowStopDialog(true)}
+              size="lg"
+              variant="destructive"
+            >
               Stop Processing
             </Button>
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={showStopDialog} onOpenChange={setShowStopDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will cancel the current transcription and enrichment process.
+              Any progress will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue</AlertDialogCancel>
+            <AlertDialogAction onClick={handleStopProcessing}>
+              Stop
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
