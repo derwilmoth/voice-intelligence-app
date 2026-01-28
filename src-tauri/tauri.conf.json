@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "voice-intelligence-app",
+  "productName": "Voice Intelligence",
   "version": "0.1.0",
   "identifier": "com.voice-intelligence",
   "build": {
